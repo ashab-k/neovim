@@ -29,6 +29,7 @@
 #include "nvim/types_defs.h"
 #include "nvim/ui.h"
 #include "nvim/ui_compositor.h"
+#include "nvim/window.h"
 
 #include "ui_compositor.c.generated.h"
 
@@ -662,6 +663,12 @@ void ui_comp_msg_set_pos(Integer grid, Integer row, Boolean scrolled, String sep
 /// TODO(bfredl): currently this only handles message row
 static bool curgrid_covered_above(int row)
 {
+  // Don't consider the global statusline row as covered.
+  // The statusline is at Rows - (int)p_ch - 1 when global_stl_height() > 0.
+  int stl_row = Rows - (int)p_ch - 1;
+  if (global_stl_height() > 0 && row == stl_row) {
+    return false;
+  }
   bool above_msg = (kv_A(layers, kv_size(layers) - 1) == &msg_grid
                     && row < msg_current_row - (msg_was_scrolled ? 1 : 0));
   return kv_size(layers) - (above_msg ? 1 : 0) > curgrid->comp_index + 1;

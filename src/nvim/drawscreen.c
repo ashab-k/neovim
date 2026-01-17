@@ -537,7 +537,7 @@ int update_screen(void)
         curwin->w_redr_status = true;
       }
     }
-    msg_grid_set_pos(Rows - (int)p_ch, false);
+    msg_grid_set_pos(Rows - (int)p_ch - global_stl_height(), false);
     msg_grid_invalid = false;
     if (was_invalidated) {
       // screen was only invalid for the msgarea part.

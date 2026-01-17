@@ -72,6 +72,7 @@
 #include "nvim/ui_compositor.h"
 #include "nvim/ui_defs.h"
 #include "nvim/vim_defs.h"
+#include "nvim/window.h"
 
 // To be able to scroll back at the "more" and "hit-enter" prompts we need to
 // store the displayed text and remember where screen lines start.
@@ -195,7 +196,10 @@ void msg_grid_validate(void)
 {
   grid_assign_handle(&msg_grid);
   bool should_alloc = msg_use_grid();
-  int max_rows = Rows - (int)p_ch;
+  // Position messages above the global statusline when it's active.
+  // The statusline is at Rows - (int)p_ch - 1, so messages should end at
+  // Rows - (int)p_ch - global_stl_height() - 1 to leave the statusline row free.
+  int max_rows = Rows - (int)p_ch - global_stl_height();
   if (should_alloc && (msg_grid.rows != Rows || msg_grid.cols != Columns
                        || !msg_grid.chars)) {
     // TODO(bfredl): eventually should be set to "invalid". I e all callers
@@ -2624,7 +2628,7 @@ void msg_reset_scroll(void)
   msg_grid.throttled = false;
   // TODO(bfredl): risk for extra flicker i e with
   // "nvim -o has_swap also_has_swap"
-  msg_grid_set_pos(Rows - (int)p_ch, false);
+  msg_grid_set_pos(Rows - (int)p_ch - global_stl_height(), false);
   clear_cmdline = true;
   if (msg_grid.chars) {
     // non-displayed part of msg_grid is considered invalid.
@@ -2635,7 +2639,7 @@ void msg_reset_scroll(void)
   }
   msg_scrolled = 0;
   msg_scrolled_at_flush = 0;
-  msg_grid_scroll_discount = 0;
+  msg_grid_scroll_discount = 0; 
 }
 
 void msg_ui_refresh(void)
@@ -3161,6 +3165,8 @@ static bool do_more_prompt(int typed_char)
   if (quit_more) {
     msg_row = Rows - 1;
     msg_col = 0;
+    // Reset message grid position and redraw the global statusline if it was covered
+    msg_reset_scroll();
   }
 
   entered = false;
